@@ -1,7 +1,11 @@
 import request from '@/utils/request'
 
-export function userLogin(data) {
-  return request(`/login/user`, 'post', {}, data)
+export function storeLogin(data) {
+  return request(`/login/store`, 'post', {}, data)
+}
+
+export function storeRouters(storeId,data) {
+  return request(`/menu/tree/${storeId}`, 'post', {}, data)
 }
 
 export function getInfo(token) {

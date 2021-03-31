@@ -6,15 +6,15 @@
         <h3 class="title">Login Form</h3>
       </div>
 
-      <el-form-item prop="username">
+      <el-form-item prop="storeName">
         <span class="svg-container">
           <svg-icon icon-class="user" />
         </span>
         <el-input
-          ref="username"
-          v-model="loginForm.username"
-          placeholder="Username"
-          name="username"
+          ref="storeName"
+          v-model="loginForm.storeName"
+          placeholder="请输入用户名..."
+          name="storeName"
           type="text"
           tabindex="1"
           autocomplete="on"
@@ -22,17 +22,17 @@
       </el-form-item>
 
       <el-tooltip v-model="capsTooltip" content="Caps lock is On" placement="right" manual>
-        <el-form-item prop="password">
+        <el-form-item prop="storePassword">
           <span class="svg-container">
-            <svg-icon icon-class="password" />
+            <svg-icon icon-class="storePassword" />
           </span>
           <el-input
-            :key="passwordType"
-            ref="password"
-            v-model="loginForm.password"
-            :type="passwordType"
-            placeholder="Password"
-            name="password"
+            :key="storePasswordType"
+            ref="storePassword"
+            v-model="loginForm.storePassword"
+            :type="storePasswordType"
+            placeholder="请输入密码..."
+            name="storePassword"
             tabindex="2"
             autocomplete="on"
             @keyup.native="checkCapslock"
@@ -40,77 +40,56 @@
             @keyup.enter.native="handleLogin"
           />
           <span class="show-pwd" @click="showPwd">
-            <svg-icon :icon-class="passwordType === 'password' ? 'eye' : 'eye-open'" />
+            <svg-icon :icon-class="storePasswordType === 'storePassword' ? 'eye' : 'eye-open'" />
           </span>
         </el-form-item>
       </el-tooltip>
 
       <el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="handleLogin">立即登录</el-button>
-
-      <div style="position:relative">
-        <div class="tips">
-          <span>Username : admin</span>
-          <span>Password : any</span>
-        </div>
-        <div class="tips">
-          <span style="margin-right:18px;">Username : editor</span>
-          <span>Password : any</span>
-        </div>
-
-        <el-button class="thirdparty-button" type="primary" @click="showDialog=true">
-          Or connect with
-        </el-button>
-      </div>
     </el-form>
-
-    <el-dialog title="Or connect with" :visible.sync="showDialog">
-      Can not be simulated on local, so please combine you own business simulation! ! !
-      <br>
-      <br>
-      <br>
-      <social-sign />
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import { validUsername } from '@/utils/validate'
 import SocialSign from './components/SocialSignin'
-import { userLogin } from '@/api/user'
+import { storeLogin,storeRouters } from '@/api/user'
+import { setToken,setMenus } from '@/utils/auth'
 
 export default {
   name: 'Login',
   components: { SocialSign },
   data() {
-    const validateUsername = (rule, value, callback) => {
-      if (!validUsername(value)) {
-        callback(new Error('Please enter the correct user name'))
-      } else {
-        callback()
-      }
-    }
-    const validatePassword = (rule, value, callback) => {
-      if (value.length < 6) {
-        callback(new Error('The password can not be less than 6 digits'))
-      } else {
-        callback()
-      }
-    }
     return {
       loginForm: {
-        username: 'admin',
-        password: '111111'
+        storeName: '',
+        storePassword: ''
       },
       loginRules: {
-        username: [{ required: true, trigger: 'blur', validator: validateUsername }],
-        password: [{ required: true, trigger: 'blur', validator: validatePassword }]
+        storeName: [{ required: true, trigger: 'blur', message: "请输入用户名" }],
+        storePassword: [{ required: true, trigger: 'blur', message: "请输入密码" }]
       },
-      passwordType: 'password',
+      storePasswordType: 'storePassword',
       capsTooltip: false,
       loading: false,
-      showDialog: false,
       redirect: undefined,
-      otherQuery: {}
+      otherQuery: {},
+      router: [
+          {
+              path: "",
+              component: "Layout",
+              redirect: "dashboard",
+              children: [
+                  {
+                      path: "dashboard",
+                      component: "dashboard/index",
+                      meta: {
+                          title: "首页",
+                          icon: "dashboard"
+                      }
+                  }
+              ]
+          }
+      ]
     }
   },
   watch: {
@@ -129,10 +108,10 @@ export default {
     // window.addEventListener('storage', this.afterQRScan)
   },
   mounted() {
-    if (this.loginForm.username === '') {
-      this.$refs.username.focus()
-    } else if (this.loginForm.password === '') {
-      this.$refs.password.focus()
+    if (this.loginForm.storeName === '') {
+      this.$refs.storeName.focus()
+    } else if (this.loginForm.storePassword === '') {
+      this.$refs.storePassword.focus()
     }
   },
   destroyed() {
@@ -144,22 +123,29 @@ export default {
       this.capsTooltip = key && key.length === 1 && (key >= 'A' && key <= 'Z')
     },
     showPwd() {
-      if (this.passwordType === 'password') {
-        this.passwordType = ''
+      if (this.storePasswordType === 'storePassword') {
+        this.storePasswordType = ''
       } else {
-        this.passwordType = 'password'
+        this.storePasswordType = 'storePassword'
       }
       this.$nextTick(() => {
-        this.$refs.password.focus()
+        this.$refs.storePassword.focus()
       })
     },
     handleLogin() {
       this.$refs.loginForm.validate(valid => {
         if (valid) {
           this.loading = true
-          userLogin(this.loginForm).then(res => {
-            this.$router.push({ path: this.redirect || '/', query: this.otherQuery })
-            this.loading = false
+            storeLogin(this.loginForm).then(res => {
+            //this.$router.push({ path: this.redirect || '/', query: this.otherQuery })
+              this.loading = false
+              this.$message.success("登录成功！")
+              setToken(res.data.token)
+              //获取商家菜单权限
+              storeRouters(res.data.store.storeId).then(res=>{
+                  //...
+                  setMenus(res.data)
+              })
           }).catch(() => {
             this.loading = false
           })
@@ -176,24 +162,6 @@ export default {
         return acc
       }, {})
     }
-    // afterQRScan() {
-    //   if (e.key === 'x-admin-oauth-code') {
-    //     const code = getQueryObject(e.newValue)
-    //     const codeMap = {
-    //       wechat: 'code',
-    //       tencent: 'code'
-    //     }
-    //     const type = codeMap[this.auth_type]
-    //     const codeName = code[type]
-    //     if (codeName) {
-    //       this.$store.dispatch('LoginByThirdparty', codeName).then(() => {
-    //         this.$router.push({ path: this.redirect || '/' })
-    //       })
-    //     } else {
-    //       alert('第三方登录失败')
-    //     }
-    //   }
-    // }
   }
 }
 </script>
