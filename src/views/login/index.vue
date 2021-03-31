@@ -52,7 +52,7 @@
 
 <script>
 import SocialSign from './components/SocialSignin'
-import { storeLogin,storeRouters } from '@/api/user'
+import { storeLogin,storeRouters,setUser } from '@/api/user'
 import { setToken,setMenus } from '@/utils/auth'
 
 export default {
@@ -141,6 +141,7 @@ export default {
               this.loading = false
               this.$message.success("登录成功！")
               setToken(res.data.token)
+              setUser(res.data.user)
               //获取商家菜单权限
               storeRouters(res.data.store.storeId).then(res=>{
                   //...
